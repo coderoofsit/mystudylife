@@ -20,49 +20,42 @@ import com.example.mystudylife.ui.theme.TextWhite
 
 @Composable
 fun PersonaCard(
+    emoji: String,
     title: String,
     isSelected: Boolean,
     onSelect: () -> Unit,
-    modifier: Modifier = Modifier,
-    isLightMode: Boolean = false
+    modifier: Modifier = Modifier
 ) {
-    val textColor = if (isLightMode) Color.Black else TextWhite
-    val borderColor = if (isSelected) EmeraldMid else if (isLightMode) Color.LightGray.copy(alpha = 0.5f) else BorderGray
+    val borderColor = if (isSelected) EmeraldMid else Color.LightGray.copy(alpha = 0.3f)
+    val backgroundColor = if (isSelected) EmeraldMid.copy(alpha = 0.1f) else Color.White
 
-    Row(
+    Column(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (isSelected) EmeraldMid.copy(alpha = 0.2f) else Color.Transparent)
-            .border(
-                1.dp,
-                borderColor,
-                RoundedCornerShape(10.dp)
-            )
+            .clip(RoundedCornerShape(14.dp))
+            .background(backgroundColor)
+            .border(2.dp, borderColor, RoundedCornerShape(14.dp))
             .clickable { onSelect() }
             .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = title,
-            color = textColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
-        
-        // Radio button like indicator
         Box(
             modifier = Modifier
-                .size(20.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(if (isSelected) EmeraldMid else Color.Transparent)
-                .border(1.dp, if (isSelected) EmeraldMid else BorderGray, RoundedCornerShape(4.dp)),
+                .size(56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (isSelected) EmeraldMid.copy(alpha = 0.2f) else Color(0xFFF8FAFC)),
             contentAlignment = Alignment.Center
         ) {
-            if (isSelected) {
-                Text(text = "✓", color = TextWhite, fontSize = 12.sp)
-            }
+            Text(text = emoji, fontSize = 28.sp)
         }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        Text(
+            text = title,
+            color = if (isSelected) EmeraldMid else Color(0xFF1E293B),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
