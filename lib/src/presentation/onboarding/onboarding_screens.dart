@@ -31,13 +31,13 @@ class PrivacyScreen extends StatelessWidget {
                     const Center(child: Text('🎓', style: TextStyle(fontSize: 44))),
                     const SizedBox(height: 8),
                     const Center(
-                      child: Text('MyStudyLife', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white)),
+                      child: Text('Success Road', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white)),
                     ),
                     const SizedBox(height: 20),
                     const Text('We care about your privacy', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 10),
                     const Text(
-                      'We want to be transparent about how we use your data to improve your experience and keep MyStudyLife free.',
+                      'We want to be transparent about how we use your data to improve your experience and keep Success Road free.',
                       style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.45),
                     ),
                     const SizedBox(height: 18),
@@ -121,7 +121,7 @@ class ProductivityHubScreen extends StatelessWidget {
                       children: [
                         Text('◀', style: TextStyle(fontSize: 16, color: Colors.white)),
                         SizedBox(width: 8),
-                        Text('MyStudyLife', style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w700)),
+                        Text('Success Road', style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w700)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -319,7 +319,7 @@ class SignInScreen extends StatelessWidget {
                   SizedBox(height: 20),
 
                   Text(
-                    'MyStudyLife',
+                    'Success Road',
                     style: TextStyle(
                       fontSize: 50,
                       fontWeight: FontWeight.w700,
@@ -619,7 +619,7 @@ class OnboardingGoalsScreen extends StatelessWidget {
                 const Text('What do you want to achieve?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 const Text(
-                  "We'll personalise MyStudyLife to help you work smarter and achieve what matters most.",
+                  "We'll personalise Success Road to help you work smarter and achieve what matters most.",
                   style: TextStyle(fontSize: 16, color: Color(0xFF586169)),
                 ),
                 const SizedBox(height: 12),
@@ -748,7 +748,7 @@ class _OnboardingHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             const Expanded(
-              child: Text('Welcome to MyStudyLife!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              child: Text('Welcome to Success Road!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             ),
             TextButton(
               onPressed: onSkip,
