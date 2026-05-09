@@ -1,7 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../controllers/study_data_controller.dart';
 import 'extra_flow_screens.dart';
 import 'main_shell_controller.dart';
+
+String _formatTimelineHour(int hour24) {
+  final isPm = hour24 >= 12;
+  final hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24);
+  return '$hour12 ${isPm ? 'PM' : 'AM'}';
+}
+
+void _showQuickAddSheet(BuildContext context) {
+  void go(Widget screen) {
+    Get.back();
+    Get.to(() => screen, transition: Transition.cupertino);
+  }
+
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Quick add', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.task_alt_outlined, color: Color(0xFF24C55E)),
+              title: const Text('Tasks'),
+              onTap: () => go(const TasksScreen()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.class_outlined, color: Color(0xFF24C55E)),
+              title: const Text('Classes'),
+              onTap: () => go(const ClassesScreen()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_note_outlined, color: Color(0xFF24C55E)),
+              title: const Text('Exams'),
+              onTap: () => go(const ExamsScreen()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.bolt_outlined, color: Color(0xFF24C55E)),
+              title: const Text('Xtra'),
+              onTap: () => go(const XtraScreen()),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    },
+  );
+}
 
 class MainShell extends GetView<MainShellController> {
   const MainShell({super.key});
@@ -48,7 +105,7 @@ class MainShell extends GetView<MainShellController> {
                   onTap: () => controller.setIndex(1),
                 ),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () => _showQuickAddSheet(context),
                   child: Container(
                     width: 56,
                     height: 56,
@@ -84,6 +141,12 @@ class _HomeDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final study = Get.find<StudyDataController>();
+    // Do not wrap in Obx: home methods read the repository only, not Rx `.value`.
+    // Obx with no tracked observables triggers GetX's improper-use assertion.
+    final summary = study.homeSummaryCounts();
+    final classes = study.homeClassesToday();
+    final tasks = study.homeTasksDue();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: ListView(
@@ -91,72 +154,61 @@ class _HomeDashboardScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Row(
-              children: [
-                const Spacer(),
-                const Column(
-                  children: [
-                    Text('Thursday', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 24)),
-                    Text('May 07, 2026', style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
-                  ],
+              Row(
+                children: [
+                  const Spacer(),
+                  Column(
+                    children: [
+                      Text(study.homeWeekdayLabel(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 24)),
+                      Text(study.homeDateLabel(), style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+                    ],
+                  ),
+                  const Spacer(),
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.search, color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  _PillBadge('${summary.classes} Classes'),
+                  _PillBadge('${summary.exams} Exam'),
+                  _PillBadge('${summary.tasks} Tasks Due'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text('Classes Today', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              ...classes.map(
+                (c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ClassCard(
+                    subject: c.subject,
+                    roomTeacher: c.roomTeacher,
+                    time: c.time,
+                    color: c.color,
+                  ),
                 ),
-                const Spacer(),
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.search, color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 14),
+              const Text('Tasks Due', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              ...tasks.map(
+                (t) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _TaskCard(
+                    title: t.title,
+                    dueText: t.dueText,
+                    trailing: t.trailing,
+                    color: t.color,
+                  ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Wrap(
-              spacing: 10,
-              runSpacing: 8,
-              children: [
-                _PillBadge('3 Classes'),
-                _PillBadge('1 Exam'),
-                _PillBadge('4 Tasks Due'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text('Classes Today', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            const _ClassCard(
-              subject: 'Mathematics',
-              roomTeacher: 'Room 204 . Mr. Khan',
-              time: '9:00 AM',
-              color: Color(0xFF21C45B),
-            ),
-            const SizedBox(height: 10),
-            const _ClassCard(
-              subject: 'Physics Lab',
-              roomTeacher: 'Lab 3 . Ms. Ahmed',
-              time: '11:30 AM',
-              color: Color(0xFFA75AF8),
-            ),
-            const SizedBox(height: 10),
-            const _ClassCard(
-              subject: 'English Lit',
-              roomTeacher: 'Room 112',
-              time: '2:00 PM',
-              color: Color(0xFFF5B11A),
-            ),
-            const SizedBox(height: 14),
-            const Text('Tasks Due', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            const _TaskCard(
-              title: 'Physics Lab Report',
-              dueText: 'Due today',
-              trailing: '!',
-              color: Color(0xFF23C8D9),
-            ),
-            const SizedBox(height: 10),
-            const _TaskCard(
-              title: 'Math Assignment Ch.5',
-              dueText: 'Due tomorrow',
-              trailing: '➜',
-              color: Color(0xFF21C45B),
-            ),
+              ),
             ],
           ),
         ],
@@ -170,77 +222,127 @@ class _TimelineCalendarScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final study = Get.find<StudyDataController>();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Colors.white,
-                  child: IconButton(
-                    icon: Icon(Icons.menu, color: Colors.grey.shade600, size: 20),
-                    onPressed: () => Get.to(
-                      () => const CalendarFilterOverlayScreen(),
-                      transition: Transition.noTransition,
-                    ),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: Colors.white,
+                child: IconButton(
+                  icon: Icon(Icons.menu, color: Colors.grey.shade600, size: 20),
+                  onPressed: () => Get.to(
+                    () => const CalendarFilterOverlayScreen(),
+                    transition: Transition.noTransition,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Obx(() {
+                  return Container(
                     height: 48,
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircleAvatar(radius: 12, backgroundColor: Color(0xFFE4F8EB), child: Icon(Icons.chevron_left, size: 16)),
-                        SizedBox(width: 12),
-                        Text('May 2026', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-                        SizedBox(width: 12),
-                        CircleAvatar(radius: 12, backgroundColor: Color(0xFFE4F8EB), child: Icon(Icons.chevron_right, size: 16)),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () => study.shiftFocusedMonth(-1),
+                          icon: const CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Color(0xFFE4F8EB),
+                            child: Icon(Icons.chevron_left, size: 16),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(study.focusedMonthYearLabel(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () => study.shiftFocusedMonth(1),
+                          icon: const CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Color(0xFFE4F8EB),
+                            child: Icon(Icons.chevron_right, size: 16),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  height: 48,
-                  width: 86,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFF24C55E)),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Text('Today', style: TextStyle(color: Color(0xFF24C55E), fontWeight: FontWeight.w700, fontSize: 17)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Text('THU', style: TextStyle(color: Color(0xFF24C55E), fontWeight: FontWeight.w700, fontSize: 16)),
-            const SizedBox(height: 4),
-            const CircleAvatar(radius: 14, backgroundColor: Color(0xFFDFF5E7), child: Text('7')),
-            const SizedBox(height: 10),
-            Expanded(
-              child: ListView(
-                children: const [
-                  _TimeRow(time: '9 AM', event: _EventBlock(title: 'Mathematics', subtitle: 'Room 204', color: Color(0xFF25C55E))),
-                  _TimeRow(time: '10 AM'),
-                  _TimeRow(time: '11 AM', event: _EventBlock(title: 'Physics Lab', subtitle: 'Lab 3', color: Color(0xFF9A4FF0))),
-                  _TimeRow(time: '12 PM'),
-                  _TimeRow(time: '1 PM'),
-                  _TimeRow(time: '2 PM', event: _EventBlock(title: 'English Lit', subtitle: 'Room 112', color: Color(0xFF1CB6D0))),
-                  _TimeRow(time: '3 PM'),
-                  _TimeRow(time: '4 PM'),
-                  _TimeRow(time: '5 PM'),
-                  _TimeRow(time: '6 PM'),
-                ],
+                  );
+                }),
               ),
+              const SizedBox(width: 10),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: study.goToToday,
+                  child: Container(
+                    height: 48,
+                    width: 86,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF24C55E)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Text('Today', style: TextStyle(color: Color(0xFF24C55E), fontWeight: FontWeight.w700, fontSize: 17)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Obx(() => Text(study.focusedWeekdayAbbrev(), style: const TextStyle(color: Color(0xFF24C55E), fontWeight: FontWeight.w700, fontSize: 16))),
+          const SizedBox(height: 4),
+          Obx(
+            () => CircleAvatar(
+              radius: 14,
+              backgroundColor: const Color(0xFFDFF5E7),
+              child: Text(study.focusedDayNumber()),
             ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Obx(() {
+              final day = study.focusedDay.value;
+              return ListView(
+                children: [
+                  for (final h in study.timelineHours())
+                    _TimeRow(
+                      time: _formatTimelineHour(h),
+                      event: _buildHourEvents(study, day, h),
+                    ),
+                ],
+              );
+            }),
+          ),
         ],
       ),
+    );
+  }
+
+  static Widget? _buildHourEvents(StudyDataController study, DateTime day, int hour) {
+    final evs = study.eventsInHour(day, hour);
+    if (evs.isEmpty) return null;
+    if (evs.length == 1) {
+      final e = evs.first;
+      return _EventBlock(title: e.title, subtitle: e.subtitle, color: e.color);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: evs
+          .map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: _EventBlock(title: e.title, subtitle: e.subtitle, color: e.color),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -319,8 +421,16 @@ class _MenuScreen extends StatelessWidget {
           transition: Transition.cupertino,
         ),
       ),
-      ('⏳', 'Focus Timer', () {}),
-      ('📷', 'Ai Schedule\nScan', () {}),
+      (
+        '⏳',
+        'Focus Timer',
+        () => Get.snackbar('Focus Timer', 'Coming soon — connect your study session flow here.'),
+      ),
+      (
+        '📷',
+        'Ai Schedule\nScan',
+        () => Get.snackbar('AI Schedule Scan', 'Coming soon — wire to camera / OCR pipeline.'),
+      ),
       ('🔗', 'Calendar\nSync', () => Get.to(() => const CalendarSyncScreen(), transition: Transition.cupertino)),
       ('🛠️', 'Settings', () => Get.to(() => const SettingsScreen(), transition: Transition.cupertino)),
       ('📅', 'Schedule Set\nUp', () => Get.to(() => const ScheduleSetupScreen(), transition: Transition.cupertino)),
@@ -375,6 +485,8 @@ class _ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final study = Get.find<StudyDataController>();
+    final p = study.userProfile;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(0, 12, 0, 14),
       child: Column(
@@ -406,22 +518,54 @@ class _ProfileScreen extends StatelessWidget {
               child: const Text('Profile Picture', style: TextStyle(color: Color(0xFF2CC56A), fontWeight: FontWeight.w700)),
             ),
             const SizedBox(height: 10),
-            const Text('zain jameel', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-            const Text('zainjameel710@gmail.com', style: TextStyle(fontSize: 14, color: Color(0xFF4F5962))),
+            Text(p.displayName, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+            Text(p.email, style: const TextStyle(fontSize: 14, color: Color(0xFF4F5962))),
             const SizedBox(height: 14),
-            const Row(
+            Row(
               children: [
-                Expanded(child: _StatsCard(title: '👀 Pending Tasks', value: '4', note: 'Next 7 Days', bg: Color(0xFFFFF7DF), valueColor: Color(0xFFE0A70D))),
-                SizedBox(width: 8),
-                Expanded(child: _StatsCard(title: '⚠️ Overdue Tasks', value: '1', note: 'Total', bg: Color(0xFFFFEEF1), valueColor: Color(0xFFE64963))),
+                Expanded(
+                  child: _StatsCard(
+                    title: '👀 Pending Tasks',
+                    value: '${p.pendingTasksNext7Days}',
+                    note: 'Next 7 Days',
+                    bg: const Color(0xFFFFF7DF),
+                    valueColor: const Color(0xFFE0A70D),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatsCard(
+                    title: '⚠️ Overdue Tasks',
+                    value: '${p.overdueTasks}',
+                    note: 'Total',
+                    bg: const Color(0xFFFFEEF1),
+                    valueColor: const Color(0xFFE64963),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
-            const Row(
+            Row(
               children: [
-                Expanded(child: _StatsCard(title: '👍 Tasks Completed', value: '12', note: 'Last 7 Days', bg: Color(0xFFE7F8EC), valueColor: Color(0xFF23C15A))),
-                SizedBox(width: 8),
-                Expanded(child: _StatsCard(title: '🔥 Your Streak', value: '7', note: 'Total streak', bg: Color(0xFFF3EEFF), valueColor: Color(0xFFA55DF8))),
+                Expanded(
+                  child: _StatsCard(
+                    title: '👍 Tasks Completed',
+                    value: '${p.tasksCompletedLast7Days}',
+                    note: 'Last 7 Days',
+                    bg: const Color(0xFFE7F8EC),
+                    valueColor: const Color(0xFF23C15A),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatsCard(
+                    title: '🔥 Your Streak',
+                    value: '${p.streakDays}',
+                    note: 'Total streak',
+                    bg: const Color(0xFFF3EEFF),
+                    valueColor: const Color(0xFFA55DF8),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -431,10 +575,10 @@ class _ProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             const Text('Delete Account', style: TextStyle(color: Color(0xFFE75A6D), fontWeight: FontWeight.w700, fontSize: 18)),
             const SizedBox(height: 2),
-            const Text('v8.0.14 (371)', style: TextStyle(color: Color(0xFF626B75), fontSize: 15)),
-        ],
-      ),
-    );
+            Text(p.appVersionLabel, style: const TextStyle(color: Color(0xFF626B75), fontSize: 15)),
+          ],
+        ),
+      );
   }
 }
 

@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../data/study_repository.dart';
+import '../../domain/models/study_models.dart';
+import '../controllers/study_data_controller.dart';
+import '../widgets/study_list_cards.dart';
+import '../widgets/study_ui_kit.dart';
 
 class CalendarFilterOverlayScreen extends StatelessWidget {
   const CalendarFilterOverlayScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final study = Get.find<StudyDataController>();
     return Scaffold(
       backgroundColor: const Color(0xFF8F8F8F),
       body: SafeArea(
@@ -16,26 +22,41 @@ class CalendarFilterOverlayScreen extends StatelessWidget {
               color: const Color(0xFFF4F5F7),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 6),
-                    _TodayButton(onTap: Get.back),
-                    const SizedBox(height: 14),
-                    const _ModeRow(label: 'Day'),
-                    const _ModeRow(label: 'Week'),
-                    const _ModeRow(label: 'Month'),
-                    const SizedBox(height: 10),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    const _FilterRow(color: Color(0xFF24C55E), title: 'Classes'),
-                    const _FilterRow(color: Color(0xFF9C4CF2), title: 'Exams'),
-                    const _FilterRow(color: Color(0xFF1DB5D0), title: 'Tasks'),
-                    const _FilterRow(color: Color(0xFFF6AB0C), title: 'Holidays'),
-                    const _FilterRow(color: Color(0xFFF4D219), title: 'Xtra'),
-                    const _FilterRow(color: Color(0xFFF6973C), title: 'ICal'),
-                  ],
-                ),
+                child: Obx(() {
+                  final mode = study.calendarViewMode.value;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 6),
+                      _OverlayTodayButton(onTap: Get.back),
+                      const SizedBox(height: 14),
+                      ...CalendarViewMode.values.map(
+                        (m) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _SelectableModeRow(
+                            label: m.name[0].toUpperCase() + m.name.substring(1),
+                            selected: mode == m,
+                            onTap: () => study.calendarViewMode.value = m,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      ...CalendarFilterType.values.map(
+                        (f) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _SelectableFilterRow(
+                            color: f.color,
+                            title: f.label,
+                            selected: study.calendarFilterActive(f),
+                            onTap: () => study.toggleCalendarFilter(f),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ),
             ),
             Expanded(
@@ -57,26 +78,44 @@ class TasksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Tasks',
       next: next,
-      child: Column(
-        children: const [
-          _SegmentControl(labels: ['Current', 'Past', 'Overdue']),
-          SizedBox(height: 12),
-          _DropdownLikeField(text: 'All Subjects'),
-          SizedBox(height: 12),
-          _InfoCard(title: 'Math Assignment Ch.5', subtitle: 'Mathematics', right: 'May 8', chip: 'Due Tomorrow', color: Color(0xFF24C55E)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Physics Lab Report', subtitle: 'Physics · Mechanics', right: 'May 7', chip: 'Due Today', chipTint: Color(0xFFFDE7EB), chipText: Color(0xFFC5415D), color: Color(0xFF9B57E7)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'English Essay Draft', subtitle: 'English Literature', right: 'May 10', chip: 'Due May 10', color: Color(0xFFF6AB0C)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Chemistry Notes', subtitle: 'Chemistry · Organic', right: 'May 12', chip: 'Due May 12', color: Color(0xFF23BED9)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'CS Coding Project', subtitle: 'Computer Science', right: 'May 15', chip: 'Due May 15', color: Color(0xFFE953AF)),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          children: [
+            SegmentTabControl(
+              labels: const ['Current', 'Past', 'Overdue'],
+              selectedIndex: TaskBucket.values.indexOf(c.taskSegment.value),
+              onChanged: (i) => c.taskSegment.value = TaskBucket.values[i],
+            ),
+            const SizedBox(height: 12),
+            StudyStyledDropdown<String>(
+              value: c.selectedTaskSubjectId.value,
+              items: c.taskSubjectDropdown
+                  .map((o) => DropdownMenuItem<String>(value: o.id, child: Text(o.label)))
+                  .toList(),
+              onChanged: (v) => c.selectedTaskSubjectId.value = v ?? 'all',
+            ),
+            const SizedBox(height: 12),
+            ...c.filteredTasks.map(
+              (t) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: StudyListItemCard(
+                  title: t.title,
+                  subtitle: t.subtitle,
+                  right: t.right,
+                  chip: t.chip,
+                  accentColor: t.accentColor,
+                  chipTint: t.chipTint,
+                  chipText: t.chipText,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -87,26 +126,45 @@ class ClassesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Classes',
       next: next,
-      child: Column(
-        children: const [
-          _SegmentControl(labels: ['Current', 'Past']),
-          SizedBox(height: 12),
-          _DropdownLikeField(text: 'All Subjects'),
-          SizedBox(height: 12),
-          _InfoCard(title: 'Mathematics', subtitle: 'Mr. Khan · Room 204', right: '9:00 AM', chip: 'Mon · Wed · Fri', color: Color(0xFF24C55E)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Physics', subtitle: 'Ms. Ahmed · Lab 3', right: '11:30 AM', chip: 'Tue · Thu', color: Color(0xFF9B57E7)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'English Literature', subtitle: 'Mrs. Riaz · Room 112', right: '2:00 PM', chip: 'Mon · Thu', color: Color(0xFFF6AB0C)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Chemistry', subtitle: 'Dr. Saleem · Lab 1', right: '10:00 AM', chip: 'Wed · Fri', color: Color(0xFF23BED9)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Computer Science', subtitle: 'Mr. Bilal · Room 305', right: '1:00 PM', chip: 'Tue · Fri', color: Color(0xFFE953AF)),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          children: [
+            SegmentTabControl(
+              labels: const ['Current', 'Past'],
+              selectedIndex: ClassExamBucket.values.indexOf(c.classSegment.value),
+              onChanged: (i) => c.classSegment.value = ClassExamBucket.values[i],
+            ),
+            const SizedBox(height: 12),
+            StudyStyledDropdown<String>(
+              value: c.selectedClassSubjectId.value,
+              items: [
+                const DropdownMenuItem(value: 'all', child: Text('All Subjects')),
+                ...c.filterSubjects.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))),
+              ],
+              onChanged: (v) => c.selectedClassSubjectId.value = v ?? 'all',
+            ),
+            const SizedBox(height: 12),
+            ...c.filteredClasses.map(
+              (cl) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: StudyListItemCard(
+                  title: cl.title,
+                  subtitle: cl.subtitle,
+                  right: cl.right,
+                  chip: cl.chip,
+                  accentColor: cl.accentColor,
+                  chipTint: cl.chipTint,
+                  chipText: cl.chipText,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -117,26 +175,45 @@ class ExamsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Exams',
       next: next,
-      child: Column(
-        children: const [
-          _SegmentControl(labels: ['Current', 'Past']),
-          SizedBox(height: 12),
-          _DropdownLikeField(text: 'All Subjects'),
-          SizedBox(height: 12),
-          _InfoCard(title: 'Math Mid-term', subtitle: 'Mathematics · Hall A', right: 'May 15', chip: 'In 8 days', color: Color(0xFF24C55E)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Physics Final', subtitle: 'Physics · Hall B', right: 'May 20', chip: 'In 13 days', color: Color(0xFF9B57E7)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Chemistry Quiz', subtitle: 'Chemistry · Lab 1', right: 'May 12', chip: 'In 5 days', color: Color(0xFF23BED9)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'English Essay Test', subtitle: 'English Lit · Room 112', right: 'May 25', chip: 'In 18 days', color: Color(0xFFF6AB0C)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'CS Practical', subtitle: 'Computer Science · Lab 3', right: 'May 29', chip: 'In 22 days', color: Color(0xFFE953AF)),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          children: [
+            SegmentTabControl(
+              labels: const ['Current', 'Past'],
+              selectedIndex: ClassExamBucket.values.indexOf(c.examSegment.value),
+              onChanged: (i) => c.examSegment.value = ClassExamBucket.values[i],
+            ),
+            const SizedBox(height: 12),
+            StudyStyledDropdown<String>(
+              value: c.selectedExamSubjectId.value,
+              items: [
+                const DropdownMenuItem(value: 'all', child: Text('All Subjects')),
+                ...c.filterSubjects.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))),
+              ],
+              onChanged: (v) => c.selectedExamSubjectId.value = v ?? 'all',
+            ),
+            const SizedBox(height: 12),
+            ...c.filteredExams.map(
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: StudyListItemCard(
+                  title: e.title,
+                  subtitle: e.subtitle,
+                  right: e.right,
+                  chip: e.chip,
+                  accentColor: e.accentColor,
+                  chipTint: e.chipTint,
+                  chipText: e.chipText,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -147,24 +224,34 @@ class VacationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Vacations',
       next: next,
-      child: Column(
-        children: const [
-          _SegmentControl(labels: ['Upcoming', 'Past']),
-          SizedBox(height: 12),
-          _InfoCard(title: 'Eid ul Fitr Holiday', subtitle: 'Religious Holiday · 3 days', right: '3 days', chip: 'Mar 31 - Apr 2', color: Color(0xFFF6AB0C)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Spring Break', subtitle: 'School Holiday · 1 week', right: '7 days', chip: 'Apr 14 - Apr 20', color: Color(0xFFF6AB0C)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Summer Vacation', subtitle: 'School Holiday · 11 weeks', right: '76 days', chip: 'Jun 15 - Aug 30', color: Color(0xFFF6AB0C)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Independence Day', subtitle: 'National Holiday', right: '1 day', chip: 'Aug 14', color: Color(0xFFF6AB0C)),
-          SizedBox(height: 10),
-          _InfoCard(title: 'Winter Break', subtitle: 'School Holiday · 2 weeks', right: '15 days', chip: 'Dec 22 - Jan 5', color: Color(0xFFF6AB0C)),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          children: [
+            SegmentTabControl(
+              labels: const ['Upcoming', 'Past'],
+              selectedIndex: VacationBucket.values.indexOf(c.vacationSegment.value),
+              onChanged: (i) => c.vacationSegment.value = VacationBucket.values[i],
+            ),
+            const SizedBox(height: 12),
+            ...c.filteredVacations.map(
+              (v) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: StudyListItemCard(
+                  title: v.title,
+                  subtitle: v.subtitle,
+                  right: v.right,
+                  chip: v.chip,
+                  accentColor: v.accentColor,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -175,42 +262,75 @@ class PersonalizeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Personalize',
       next: next,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Which country are you from? 👑', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 6),
-          Text(
-            'If you want to, let us know where you are from so we can suggest the most relevant personalization.',
-            style: TextStyle(fontSize: 14, color: Color(0xFF5D6670)),
-          ),
-          SizedBox(height: 10),
-          _DropdownLikeField(text: 'Pakistan'),
-          SizedBox(height: 16),
-          Text('Date format you prefer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 10),
-          _ChoiceWrap(labels: ['Jan 1, 2022', '1 Jan, 2022', '2022, Jan 1'], selected: 0),
-          SizedBox(height: 14),
-          Text('Time format you prefer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 10),
-          _ChoiceWrap(labels: ['12 hrs (Eg. 3pm)', '24 hrs (Eg. 15:00)'], selected: 0),
-          SizedBox(height: 14),
-          Text('Days to display on the dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 10),
-          _ChoiceWrap(labels: ['1', '2', '3', '4', '5'], selected: 1, outlined: true),
-          SizedBox(height: 14),
-          Text('Task completion confetti', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 10),
-          _ChoiceWrap(labels: ['On', 'Off'], selected: 0),
-          SizedBox(height: 14),
-          Text('Show completed tasks on the dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 10),
-          _ChoiceWrap(labels: ['Show', 'Hide 🗑️'], selected: 0),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Which country are you from? 👑', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text(
+              'If you want to, let us know where you are from so we can suggest the most relevant personalization.',
+              style: TextStyle(fontSize: 14, color: Color(0xFF5D6670)),
+            ),
+            const SizedBox(height: 10),
+            StudyStyledDropdown<int>(
+              value: c.personalizeCountryIndex.value.clamp(0, c.countryOptions.length - 1),
+              items: [
+                for (var i = 0; i < c.countryOptions.length; i++)
+                  DropdownMenuItem(value: i, child: Text(c.countryOptions[i])),
+              ],
+              onChanged: (v) {
+                if (v != null) c.personalizeCountryIndex.value = v;
+              },
+            ),
+            const SizedBox(height: 16),
+            const Text('Date format you prefer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            StudyChoiceChipGroup(
+              labels: const ['Jan 1, 2022', '1 Jan, 2022', '2022, Jan 1'],
+              selectedIndex: c.personalizeDateFormatIndex.value,
+              onChanged: (i) => c.personalizeDateFormatIndex.value = i,
+            ),
+            const SizedBox(height: 14),
+            const Text('Time format you prefer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            StudyChoiceChipGroup(
+              labels: const ['12 hrs (Eg. 3pm)', '24 hrs (Eg. 15:00)'],
+              selectedIndex: c.personalizeTimeFormatIndex.value,
+              onChanged: (i) => c.personalizeTimeFormatIndex.value = i,
+            ),
+            const SizedBox(height: 14),
+            const Text('Days to display on the dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            StudyChoiceChipGroup(
+              labels: const ['1', '2', '3', '4', '5'],
+              selectedIndex: c.personalizeDashboardDaysIndex.value,
+              outlined: true,
+              onChanged: (i) => c.personalizeDashboardDaysIndex.value = i,
+            ),
+            const SizedBox(height: 14),
+            const Text('Task completion confetti', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            StudyChoiceChipGroup(
+              labels: const ['On', 'Off'],
+              selectedIndex: c.personalizeConfettiOn.value ? 0 : 1,
+              onChanged: (i) => c.personalizeConfettiOn.value = i == 0,
+            ),
+            const SizedBox(height: 14),
+            const Text('Show completed tasks on the dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            StudyChoiceChipGroup(
+              labels: const ['Show', 'Hide 🗑️'],
+              selectedIndex: c.personalizeShowCompletedTasks.value ? 0 : 1,
+              onChanged: (i) => c.personalizeShowCompletedTasks.value = i == 0,
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -221,24 +341,34 @@ class XtraScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Xtra',
       next: next,
-      child: Column(
-        children: const [
-          _SegmentControl(labels: ['Academic', 'Non-Academic']),
-          SizedBox(height: 14),
-          _XtraCard(icon: '📚', title: 'Group Study Session', subtitle: 'Mathematics · Library', time: '2 hrs', chip: 'Today, 4 PM'),
-          SizedBox(height: 10),
-          _XtraCard(icon: '📝', title: 'Project Meeting', subtitle: 'Computer Science · Lab 3', time: '1 hr', chip: 'Tomorrow, 2 PM'),
-          SizedBox(height: 10),
-          _XtraCard(icon: '🔬', title: 'Lab Session', subtitle: 'Chemistry · Lab 1', time: '3 hrs', chip: 'May 9, 11 AM'),
-          SizedBox(height: 10),
-          _XtraCard(icon: '🎓', title: 'Tutoring', subtitle: 'Physics · Office Hours', time: '1 hr', chip: 'May 10, 3 PM'),
-          SizedBox(height: 10),
-          _XtraCard(icon: '📖', title: 'Reading Club', subtitle: 'English · Room 112', time: '90 min', chip: 'May 11, 5 PM'),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          children: [
+            SegmentTabControl(
+              labels: const ['Academic', 'Non-Academic'],
+              selectedIndex: XtraBucket.values.indexOf(c.xtraSegment.value),
+              onChanged: (i) => c.xtraSegment.value = XtraBucket.values[i],
+            ),
+            const SizedBox(height: 14),
+            ...c.filteredXtra.map(
+              (x) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: StudyXtraListCard(
+                  emoji: x.emoji,
+                  title: x.title,
+                  subtitle: x.subtitle,
+                  time: x.time,
+                  chip: x.chip,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -318,42 +448,89 @@ class ICalIntroScreen extends StatelessWidget {
   }
 }
 
-class CalendarSyncScreen extends StatelessWidget {
+class CalendarSyncScreen extends StatefulWidget {
   const CalendarSyncScreen({super.key, this.next});
   final VoidCallback? next;
 
   @override
+  State<CalendarSyncScreen> createState() => _CalendarSyncScreenState();
+}
+
+class _CalendarSyncScreenState extends State<CalendarSyncScreen> {
+  late final TextEditingController _title;
+  late final TextEditingController _url;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = Get.find<StudyDataController>();
+    _title = TextEditingController(text: s.syncTitleController.value);
+    _url = TextEditingController(text: s.syncUrlController.value);
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _url.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Calendar Sync',
-      next: next,
+      next: widget.next,
       backgroundColor: const Color(0xFFDDF5E4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('1. Get your iCal link', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          SizedBox(height: 6),
-          Text('Copy the iCal URL from your calendar provider and paste it into MyStudyLife to sync your schedule.', style: TextStyle(color: Color(0xFF4B5563))),
-          SizedBox(height: 10),
-          _DropdownLikeField(text: 'Google Calendar'),
-          SizedBox(height: 8),
-          Text.rich(
+        children: [
+          const Text('1. Get your iCal link', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          const Text(
+            'Copy the iCal URL from your calendar provider and paste it into MyStudyLife to sync your schedule.',
+            style: TextStyle(color: Color(0xFF4B5563)),
+          ),
+          const SizedBox(height: 10),
+          Obx(
+            () => StudyStyledDropdown<int>(
+              value: c.calendarProviderIndex.value.clamp(0, c.calendarProviderOptions.length - 1),
+              items: [
+                for (var i = 0; i < c.calendarProviderOptions.length; i++)
+                  DropdownMenuItem(value: i, child: Text(c.calendarProviderOptions[i])),
+              ],
+              onChanged: (v) {
+                if (v != null) c.calendarProviderIndex.value = v;
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text.rich(
             TextSpan(
               text: "Can't find your calendar type? ",
               style: TextStyle(fontWeight: FontWeight.w700),
               children: [TextSpan(text: 'Check this guide', style: TextStyle(color: Color(0xFF239D60), decoration: TextDecoration.underline))],
             ),
           ),
-          SizedBox(height: 16),
-          Text('2. Paste the link here', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          SizedBox(height: 10),
-          Text('Title*', style: TextStyle(fontWeight: FontWeight.w700)),
-          SizedBox(height: 6),
-          _InputLikeField(text: 'School Timetable'),
-          SizedBox(height: 12),
-          Text('URL*', style: TextStyle(fontWeight: FontWeight.w700)),
-          SizedBox(height: 6),
-          _InputLikeField(text: 'https://calendar.google.com/calendar/ical/...', height: 82),
+          const SizedBox(height: 16),
+          const Text('2. Paste the link here', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          const Text('Title*', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          StudyStyledTextField(
+            controller: _title,
+            onChanged: (t) => c.syncTitleController.value = t,
+          ),
+          const SizedBox(height: 12),
+          const Text('URL*', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          StudyStyledTextField(
+            controller: _url,
+            minLines: 3,
+            maxLines: 5,
+            keyboardType: TextInputType.url,
+            onChanged: (u) => c.syncUrlController.value = u,
+          ),
         ],
       ),
     );
@@ -398,7 +575,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               _SettingsRow(title: 'About', icon: 'ⓘ'),
-              _SettingsToggleRow(title: 'Dark mode', icon: '🌙'),
+              _DarkModeToggleRow(),
             ],
           ),
           const SizedBox(height: 10),
@@ -420,39 +597,106 @@ class ScheduleSetupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
+
+    String formatStartTime() {
+      final t = TimeOfDay(hour: c.defaultStartHour.value, minute: c.defaultStartMinute.value);
+      return MaterialLocalizations.of(context).formatTimeOfDay(t, alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat);
+    }
+
+    Future<void> pickStartTime() async {
+      final initial = TimeOfDay(hour: c.defaultStartHour.value, minute: c.defaultStartMinute.value);
+      final picked = await showTimePicker(context: context, initialTime: initial);
+      if (picked != null) {
+        c.defaultStartHour.value = picked.hour;
+        c.defaultStartMinute.value = picked.minute;
+      }
+    }
+
     return _DetailScaffold(
       title: 'Schedule Setup',
       next: next,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Academic Year', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          SizedBox(height: 8),
-          _DropdownLikeField(text: 'Manage Academic Years'),
-          SizedBox(height: 14),
-          Text('Schedule type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          Text('Classes rotate according to the schedule day.', style: TextStyle(color: Color(0xFF5D6670))),
-          SizedBox(height: 8),
-          _ChoiceWrap(labels: ['Fixed', 'Week\nRotation', 'Day\nRotation'], selected: 0),
-          SizedBox(height: 14),
-          Text('First Day', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          Text('What is the first day of your school week?', style: TextStyle(color: Color(0xFF5D6670))),
-          SizedBox(height: 8),
-          _DropdownLikeField(text: 'Monday'),
-          SizedBox(height: 14),
-          Text('Default Start Time', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          Text('What time does your school day start?', style: TextStyle(color: Color(0xFF5D6670))),
-          SizedBox(height: 8),
-          _InputLikeField(text: '9:00 AM'),
-          SizedBox(height: 14),
-          Text('Duration*', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          Text('How long are your classes?', style: TextStyle(color: Color(0xFF5D6670))),
-          SizedBox(height: 8),
-          _DropdownLikeField(text: '60 minutes'),
-          SizedBox(height: 12),
-          _TogglePanel(title: 'Bump rotation on holidays'),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Academic Year', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            StudyStyledDropdown<int>(
+              value: c.scheduleYearIndex.value.clamp(0, c.academicYearOptions.length - 1),
+              items: [
+                for (var i = 0; i < c.academicYearOptions.length; i++)
+                  DropdownMenuItem(value: i, child: Text(c.academicYearOptions[i])),
+              ],
+              onChanged: (v) {
+                if (v != null) c.scheduleYearIndex.value = v;
+              },
+            ),
+            const SizedBox(height: 14),
+            const Text('Schedule type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const Text('Classes rotate according to the schedule day.', style: TextStyle(color: Color(0xFF5D6670))),
+            const SizedBox(height: 8),
+            StudyChoiceChipGroup(
+              labels: const ['Fixed', 'Week\nRotation', 'Day\nRotation'],
+              selectedIndex: c.scheduleTypeIndex.value,
+              onChanged: (i) => c.scheduleTypeIndex.value = i,
+            ),
+            const SizedBox(height: 14),
+            const Text('First Day', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const Text('What is the first day of your school week?', style: TextStyle(color: Color(0xFF5D6670))),
+            const SizedBox(height: 8),
+            StudyStyledDropdown<int>(
+              value: c.scheduleFirstWeekdayIndex.value.clamp(0, c.weekdayOptions.length - 1),
+              items: [
+                for (var i = 0; i < c.weekdayOptions.length; i++)
+                  DropdownMenuItem(value: i, child: Text(c.weekdayOptions[i])),
+              ],
+              onChanged: (v) {
+                if (v != null) c.scheduleFirstWeekdayIndex.value = v;
+              },
+            ),
+            const SizedBox(height: 14),
+            const Text('Default Start Time', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const Text('What time does your school day start?', style: TextStyle(color: Color(0xFF5D6670))),
+            const SizedBox(height: 8),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: pickStartTime,
+                child: Container(
+                  width: double.infinity,
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                  child: Text(formatStartTime(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text('Duration*', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const Text('How long are your classes?', style: TextStyle(color: Color(0xFF5D6670))),
+            const SizedBox(height: 8),
+            StudyStyledDropdown<int>(
+              value: c.scheduleDurationIndex.value.clamp(0, c.classDurationOptions.length - 1),
+              items: [
+                for (var i = 0; i < c.classDurationOptions.length; i++)
+                  DropdownMenuItem(value: i, child: Text(c.classDurationOptions[i])),
+              ],
+              onChanged: (v) {
+                if (v != null) c.scheduleDurationIndex.value = v;
+              },
+            ),
+            const SizedBox(height: 12),
+            AppSwitchTile(
+              title: 'Bump rotation on holidays',
+              value: c.scheduleBumpHolidays.value,
+              onChanged: (v) => c.scheduleBumpHolidays.value = v,
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -463,22 +707,51 @@ class RemindersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = Get.find<StudyDataController>();
     return _DetailScaffold(
       title: 'Reminders',
       next: next,
-      child: const Column(
-        children: [
-          _TogglePanel(title: 'Reminders'),
-          SizedBox(height: 10),
-          _TogglePanel(title: 'Sound'),
-          SizedBox(height: 10),
-          _TogglePanel(title: 'Vibrate'),
-          SizedBox(height: 10),
-          _ReminderGroup(title: 'Class Reminders'),
-          SizedBox(height: 10),
-          _ReminderGroup(title: 'Exams Reminders'),
-        ],
-      ),
+      child: Obx(() {
+        return Column(
+          children: [
+            AppSwitchTile(
+              title: 'Reminders',
+              value: c.remindersEnabled.value,
+              onChanged: (v) => c.remindersEnabled.value = v,
+            ),
+            const SizedBox(height: 10),
+            AppSwitchTile(
+              title: 'Sound',
+              value: c.reminderSoundEnabled.value,
+              onChanged: (v) => c.reminderSoundEnabled.value = v,
+            ),
+            const SizedBox(height: 10),
+            AppSwitchTile(
+              title: 'Vibrate',
+              value: c.reminderVibrateEnabled.value,
+              onChanged: (v) => c.reminderVibrateEnabled.value = v,
+            ),
+            const SizedBox(height: 10),
+            ReminderGroupCard(
+              title: 'Class Reminders',
+              enabled: c.classReminderEnabled.value,
+              onEnabledChanged: (v) => c.classReminderEnabled.value = v,
+              leadOptions: c.reminderLeadOptions,
+              selectedLeadIndex: c.classReminderLeadIndex.value,
+              onLeadChanged: (i) => c.classReminderLeadIndex.value = i,
+            ),
+            const SizedBox(height: 10),
+            ReminderGroupCard(
+              title: 'Exams Reminders',
+              enabled: c.examReminderEnabled.value,
+              onEnabledChanged: (v) => c.examReminderEnabled.value = v,
+              leadOptions: c.reminderLeadOptions,
+              selectedLeadIndex: c.examReminderLeadIndex.value,
+              onLeadChanged: (i) => c.examReminderLeadIndex.value = i,
+            ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -489,25 +762,21 @@ class ManageSubjectsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rows = Get.find<StudyRepository>().manageSubjects;
     return _DetailScaffold(
       title: 'Manage Subjects',
       next: next,
       child: Stack(
         children: [
-          const Column(
+          Column(
             children: [
-              _SubjectCard(title: 'ENGLISH', color: Color(0xFF4FD26D)),
-              SizedBox(height: 10),
-              _SubjectCard(title: 'MATHEMATICS', color: Color(0xFF1D7B43)),
-              SizedBox(height: 10),
-              _SubjectCard(title: 'SCIENCE', color: Color(0xFF4FD26D)),
-              SizedBox(height: 10),
-              _SubjectCard(title: 'BIOLOGY', color: Color(0xFF1D7B43)),
-              SizedBox(height: 10),
-              _SubjectCard(title: 'CHEMISTRY', color: Color(0xFFF18622)),
-              SizedBox(height: 10),
-              _SubjectCard(title: 'PHYSICS', color: Color(0xFF9B57E7)),
-              SizedBox(height: 70),
+              ...rows.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: StudyManageSubjectCard(item: item),
+                ),
+              ),
+              const SizedBox(height: 70),
             ],
           ),
           Positioned(
@@ -533,8 +802,45 @@ class ManageSubjectsScreen extends StatelessWidget {
   }
 }
 
-class NewSubjectScreen extends StatelessWidget {
+class NewSubjectScreen extends StatefulWidget {
   const NewSubjectScreen({super.key});
+
+  @override
+  State<NewSubjectScreen> createState() => _NewSubjectScreenState();
+}
+
+class _NewSubjectScreenState extends State<NewSubjectScreen> {
+  static const _palette = [
+    Color(0xFFE62424),
+    Color(0xFFFF7913),
+    Color(0xFFF5A80B),
+    Color(0xFFF4CB1A),
+    Color(0xFF1E6B3C),
+    Color(0xFF2AC45D),
+    Color(0xFF4BD37D),
+    Color(0xFF78DFA0),
+  ];
+
+  final _name = TextEditingController();
+  var _pickedColorIndex = 0;
+  var _photoIndex = 2;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    FocusScope.of(context).unfocus();
+    final name = _name.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a subject name')));
+      return;
+    }
+    Get.back();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved “$name” (demo only)')));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -546,36 +852,44 @@ class NewSubjectScreen extends StatelessWidget {
           const SizedBox(height: 14),
           const Text('Subject name*', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
           const SizedBox(height: 8),
-          const _InputLikeField(text: ''),
+          StudyStyledTextField(controller: _name, hintText: 'e.g. Statistics'),
           const SizedBox(height: 16),
           const Text('Color', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              _ColorDot(Color(0xFFE62424)),
-              _ColorDot(Color(0xFFFF7913)),
-              _ColorDot(Color(0xFFF5A80B)),
-              _ColorDot(Color(0xFFF4CB1A)),
-              _ColorDot(Color(0xFF1E6B3C)),
-              _ColorDot(Color(0xFF2AC45D)),
-              _ColorDot(Color(0xFF4BD37D)),
-              _ColorDot(Color(0xFF78DFA0)),
-            ],
+            children: List.generate(_palette.length, (i) {
+              final c = _palette[i];
+              final selected = i == _pickedColorIndex;
+              return GestureDetector(
+                onTap: () => setState(() => _pickedColorIndex = i),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: c,
+                    border: Border.all(color: selected ? const Color(0xFF24C55E) : Colors.transparent, width: 3),
+                  ),
+                ),
+              );
+            }),
           ),
           const SizedBox(height: 14),
           const Text('Photo', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
           const SizedBox(height: 10),
-          const Row(
-            children: [
-              Expanded(child: _PhotoTile()),
-              SizedBox(width: 8),
-              Expanded(child: _PhotoTile()),
-              SizedBox(width: 8),
-              Expanded(child: _PhotoTile(selected: true)),
-              SizedBox(width: 8),
-              Expanded(child: _PhotoTile()),
-            ],
+          Row(
+            children: List.generate(4, (i) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+                  child: _PhotoTile(
+                    selected: i == _photoIndex,
+                    onTap: () => setState(() => _photoIndex = i),
+                  ),
+                ),
+              );
+            }),
           ),
           const SizedBox(height: 10),
           Container(
@@ -587,7 +901,7 @@ class NewSubjectScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: Get.back,
+              onPressed: _save,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF24C55E),
                 minimumSize: const Size(double.infinity, 58),
@@ -787,219 +1101,6 @@ class _DetailScaffold extends StatelessWidget {
   }
 }
 
-class _SegmentControl extends StatelessWidget {
-  const _SegmentControl({required this.labels});
-  final List<String> labels;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: const Color(0xFFCBEBD8), borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        children: List.generate(labels.length, (i) {
-          final selected = i == 0;
-          return Expanded(
-            child: Container(
-              height: 42,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected ? const Color(0xFF24C55E) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                labels[i],
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : const Color(0xFF2B5138),
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _DropdownLikeField extends StatelessWidget {
-  const _DropdownLikeField({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        children: [
-          Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
-          const Spacer(),
-          const Icon(Icons.arrow_drop_down, size: 18),
-        ],
-      ),
-    );
-  }
-}
-
-class _InputLikeField extends StatelessWidget {
-  const _InputLikeField({required this.text, this.height = 48});
-  final String text;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-      child: Text(text, style: const TextStyle(color: Color(0xFF8B929C))),
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.title,
-    required this.subtitle,
-    required this.right,
-    required this.chip,
-    required this.color,
-    this.chipTint = const Color(0xFFE5F7EA),
-    this.chipText = const Color(0xFF236847),
-  });
-
-  final String title;
-  final String subtitle;
-  final String right;
-  final String chip;
-  final Color color;
-  final Color chipTint;
-  final Color chipText;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-          Container(width: 5, height: 52, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(99))),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17))),
-                    Text(right, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4E5561))),
-                  ],
-                ),
-                Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFF5E6670))),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: chipTint, borderRadius: BorderRadius.circular(6)),
-                  child: Text(chip, style: TextStyle(fontWeight: FontWeight.w700, color: chipText, fontSize: 12)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChoiceWrap extends StatelessWidget {
-  const _ChoiceWrap({required this.labels, this.selected = 0, this.outlined = false});
-  final List<String> labels;
-  final int selected;
-  final bool outlined;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(labels.length, (i) {
-        final isSelected = i == selected;
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF24C55E) : const Color(0xFFCFF0DC),
-            borderRadius: BorderRadius.circular(14),
-            border: outlined && isSelected ? Border.all(color: const Color(0xFF24C55E)) : null,
-          ),
-          child: Text(
-            labels[i],
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: isSelected ? Colors.white : const Color(0xFF2A975F),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _XtraCard extends StatelessWidget {
-  const _XtraCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-    required this.chip,
-  });
-
-  final String icon;
-  final String title;
-  final String subtitle;
-  final String time;
-  final String chip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: const Color(0xFFE1F7E9), borderRadius: BorderRadius.circular(12)),
-            child: Text(icon, style: const TextStyle(fontSize: 24)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                Text(subtitle, style: const TextStyle(color: Color(0xFF5E6670))),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: const Color(0xFFE5F7EA), borderRadius: BorderRadius.circular(6)),
-                  child: Text(chip, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF236847), fontSize: 12)),
-                ),
-              ],
-            ),
-          ),
-          Text(time, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4E5561))),
-        ],
-      ),
-    );
-  }
-}
-
 class _SettingsSection extends StatelessWidget {
   const _SettingsSection({required this.children});
   final List<Widget> children;
@@ -1039,142 +1140,59 @@ class _SettingsRow extends StatelessWidget {
   }
 }
 
-class _SettingsToggleRow extends StatelessWidget {
-  const _SettingsToggleRow({required this.title, required this.icon});
-  final String title;
-  final String icon;
-
+class _DarkModeToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      child: Row(
-        children: [
-          Text(icon),
-          const SizedBox(width: 12),
-          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17))),
-          Switch(value: false, onChanged: (_) {}),
-        ],
-      ),
-    );
-  }
-}
-
-class _TogglePanel extends StatelessWidget {
-  const _TogglePanel({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17))),
-          Switch(value: true, onChanged: (_) {}),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReminderGroup extends StatelessWidget {
-  const _ReminderGroup({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17))),
-              Switch(value: true, onChanged: (_) {}),
-            ],
-          ),
-          const Text('How many minutes before your class would you like to receive a reminder.', style: TextStyle(color: Color(0xFF5E6670))),
-          const SizedBox(height: 8),
-          const Text('Remind Me Before', style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          const _DropdownLikeField(text: '5 Minutes'),
-        ],
-      ),
-    );
-  }
-}
-
-class _SubjectCard extends StatelessWidget {
-  const _SubjectCard({required this.title, required this.color});
-  final String title;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-          Container(width: 5, height: 60, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(99))),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                  decoration: BoxDecoration(color: const Color(0xFFE5F7EA), borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Edit', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF24A660))),
-                ),
-              ],
+    final c = Get.find<StudyDataController>();
+    return Obx(() {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFFF1F1F1)))),
+        child: Row(
+          children: [
+            const Text('🌙'),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Dark mode', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17))),
+            Switch.adaptive(
+              value: c.darkModeEnabled.value,
+              onChanged: (v) => c.darkModeEnabled.value = v,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ColorDot extends StatelessWidget {
-  const _ColorDot(this.color);
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 38, height: 38, decoration: BoxDecoration(shape: BoxShape.circle, color: color));
+          ],
+        ),
+      );
+    });
   }
 }
 
 class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({this.selected = false});
+  const _PhotoTile({this.selected = false, this.onTap});
   final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 78,
-      decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        gradient: selected ? LinearGradient(colors: [const Color(0xFF77EFA7), const Color(0xFF2ACA63)]) : null,
-        color: selected ? null : const Color(0xFFD4F0DE),
-      ),
-      child: const Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: 8),
-          child: CircleAvatar(
-            radius: 13,
-            backgroundColor: Color(0xFF1F3550),
-            child: Icon(Icons.lock, color: Color(0xFFF4C95A), size: 14),
+        onTap: onTap,
+        child: Container(
+          height: 78,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: selected ? const LinearGradient(colors: [Color(0xFF77EFA7), Color(0xFF2ACA63)]) : null,
+            color: selected ? null : const Color(0xFFD4F0DE),
+          ),
+          child: const Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: CircleAvatar(
+                radius: 13,
+                backgroundColor: Color(0xFF1F3550),
+                child: Icon(Icons.lock, color: Color(0xFFF4C95A), size: 14),
+              ),
+            ),
           ),
         ),
       ),
@@ -1236,13 +1254,13 @@ class _HelpBase extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                        child: const Column(
+                        child: Column(
                           children: [
-                            _InputLikeField(text: 'Search for help'),
-                            SizedBox(height: 8),
-                            _HelpArticle('Why We\'re Introducing Ads on MyStudyLife'),
-                            _HelpArticle('How to Talk to Your Parents about MSL'),
-                            _HelpArticle('How to Add MyStudyLife Widgets...'),
+                            const StudyStyledTextField(hintText: 'Search for help'),
+                            const SizedBox(height: 8),
+                            const _HelpArticle('Why We\'re Introducing Ads on MyStudyLife'),
+                            const _HelpArticle('How to Talk to Your Parents about MSL'),
+                            const _HelpArticle('How to Add MyStudyLife Widgets...'),
                           ],
                         ),
                       ),
@@ -1378,70 +1396,96 @@ class _OfferBadge extends StatelessWidget {
   }
 }
 
-class _TodayButton extends StatelessWidget {
-  const _TodayButton({required this.onTap});
+class _OverlayTodayButton extends StatelessWidget {
+  const _OverlayTodayButton({required this.onTap});
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.topRight,
-      child: Container(
-        width: 84,
-        height: 42,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF24C55E)),
+          onTap: onTap,
+          child: Container(
+            width: 84,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF24C55E)),
+            ),
+            child: const Text('Today', style: TextStyle(color: Color(0xFF24C55E), fontWeight: FontWeight.w700, fontSize: 18)),
+          ),
         ),
-        child: const Text('Today', style: TextStyle(color: Color(0xFF24C55E), fontWeight: FontWeight.w700, fontSize: 18)),
       ),
     );
   }
 }
 
-class _ModeRow extends StatelessWidget {
-  const _ModeRow({required this.label});
+class _SelectableModeRow extends StatelessWidget {
+  const _SelectableModeRow({required this.label, required this.selected, required this.onTap});
+
   final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          const Icon(Icons.calendar_month_outlined),
-          const SizedBox(width: 10),
-          Text(label, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
-        ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_month_outlined, color: selected ? const Color(0xFF24C55E) : Colors.black54),
+              const SizedBox(width: 10),
+              Expanded(child: Text(label, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: selected ? const Color(0xFF15763B) : const Color(0xFF374151)))),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({required this.color, required this.title});
+class _SelectableFilterRow extends StatelessWidget {
+  const _SelectableFilterRow({required this.color, required this.title, required this.selected, required this.onTap});
+
   final Color color;
   final String title;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(color: const Color(0xFFCDEBD9), borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        children: [
-          Container(width: 28, height: 28, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8))),
-          const SizedBox(width: 10),
-          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16))),
-          const CircleAvatar(
-            radius: 12,
-            backgroundColor: Color(0xFF24C55E),
-            child: Icon(Icons.check, size: 14, color: Colors.white),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(color: const Color(0xFFCDEBD9), borderRadius: BorderRadius.circular(12)),
+          child: Row(
+            children: [
+              Container(width: 28, height: 28, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8))),
+              const SizedBox(width: 10),
+              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16))),
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: selected ? const Color(0xFF24C55E) : const Color(0xFFE5E7EB),
+                child: Icon(selected ? Icons.check : Icons.close, size: 14, color: selected ? Colors.white : const Color(0xFF9CA3AF)),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
