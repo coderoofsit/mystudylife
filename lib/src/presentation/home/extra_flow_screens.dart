@@ -419,13 +419,13 @@ class ICalIntroScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Easily connect MyStudyLife to your school, university,\nor personal calendar to keep your MSL schedule up to date automatically.',
+            'Easily connect Success Road to your school, university,\nor personal calendar to keep your MSL schedule up to date automatically.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF4B5563), height: 1.4),
           ),
           const SizedBox(height: 10),
           const Text(
-            'Simply download your iCal link and upload it here. Any changes to your calendar will sync instantly with MyStudyLife.',
+            'Simply download your iCal link and upload it here. Any changes to your calendar will sync instantly with Success Road.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF4B5563), height: 1.4),
           ),
@@ -488,7 +488,7 @@ class _CalendarSyncScreenState extends State<CalendarSyncScreen> {
           const Text('1. Get your iCal link', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           const Text(
-            'Copy the iCal URL from your calendar provider and paste it into MyStudyLife to sync your schedule.',
+            'Copy the iCal URL from your calendar provider and paste it into Success Road to sync your schedule.',
             style: TextStyle(color: Color(0xFF4B5563)),
           ),
           const SizedBox(height: 10),
@@ -981,7 +981,7 @@ class PremiumOfferScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Unlock MyStudyLife+ Free for 1 Week - Plan Smarter, Stress Less',
+            'Unlock Success Road+ Free for 1 Week - Plan Smarter, Stress Less',
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 22),
           ),
           const SizedBox(height: 10),
@@ -1006,7 +1006,7 @@ class PremiumOfferScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.check_circle, color: Color(0xFF24C55E)),
                     SizedBox(width: 8),
-                    Expanded(child: Text('MyStudyLife+ (1 year)', style: TextStyle(fontWeight: FontWeight.w700))),
+                    Expanded(child: Text('Success Road+ (1 year)', style: TextStyle(fontWeight: FontWeight.w700))),
                     _OfferBadge(),
                   ],
                 ),
@@ -1228,7 +1228,7 @@ class _HelpBase extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
               child: Row(
                 children: [
-                  const Text('◀  MyStudyLife', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
+                  const Text('◀  Success Road', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
                   const Spacer(),
                   IconButton(onPressed: onClose, icon: const Icon(Icons.close, color: Colors.white)),
                 ],
@@ -1258,9 +1258,9 @@ class _HelpBase extends StatelessWidget {
                           children: [
                             const StudyStyledTextField(hintText: 'Search for help'),
                             const SizedBox(height: 8),
-                            const _HelpArticle('Why We\'re Introducing Ads on MyStudyLife'),
+                            const _HelpArticle('Why We\'re Introducing Ads on Success Road'),
                             const _HelpArticle('How to Talk to Your Parents about MSL'),
-                            const _HelpArticle('How to Add MyStudyLife Widgets...'),
+                            const _HelpArticle('How to Add Success Road Widgets...'),
                           ],
                         ),
                       ),
