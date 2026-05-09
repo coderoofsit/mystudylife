@@ -11,7 +11,7 @@ class MyStudyLifeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'MyStudyLife',
+      title: 'Success Road',
       theme: buildAppTheme(),
       initialRoute: AppRoutes.privacy,
       getPages: AppPages.pages,
