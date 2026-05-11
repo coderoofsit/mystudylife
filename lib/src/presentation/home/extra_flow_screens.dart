@@ -1241,7 +1241,7 @@ class _HelpBase extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 14),
-                    const Text('Hi Zain 👋', style: TextStyle(color: Color(0xFFD1D5DB), fontSize: 20, fontWeight: FontWeight.w700)),
+                    const Text('Hi John 👋', style: TextStyle(color: Color(0xFFD1D5DB), fontSize: 20, fontWeight: FontWeight.w700)),
                     const Text('How can we help you today?', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
                     if (showCards) ...[
                       const SizedBox(height: 14),
