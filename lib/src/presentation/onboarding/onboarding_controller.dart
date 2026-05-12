@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class OnboardingController extends GetxController {
-  final nameController = TextEditingController(text: 'zain');
-  final emailController = TextEditingController(text: 'zainjameel710@gmail.com');
+  final nameController = TextEditingController(text: 'John Parkinson');
+  final emailController = TextEditingController(text: 'johnparkinson@gmail.com');
   final passwordController = TextEditingController(text: 'password');
 
   final levelOptions = const ['Middle School', 'High School', 'University', 'Other'];

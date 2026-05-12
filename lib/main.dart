@@ -3,5 +3,5 @@ import 'src/app/app.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyStudyLifeApp());
+  runApp(const SuccessRoadApp());
 }

@@ -4,8 +4,8 @@ import '../core/theme/app_theme.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
 
-class MyStudyLifeApp extends StatelessWidget {
-  const MyStudyLifeApp({super.key});
+class SuccessRoadApp extends StatelessWidget {
+  const SuccessRoadApp({super.key});
 
   @override
   Widget build(BuildContext context) {

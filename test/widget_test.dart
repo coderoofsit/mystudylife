@@ -3,7 +3,7 @@ import 'package:mystudylifeapp/src/app/app.dart';
 
 void main() {
   testWidgets('Privacy screen loads as entry screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyStudyLifeApp());
+    await tester.pumpWidget(const SuccessRoadApp());
     expect(find.text('Privacy & Data'), findsOneWidget);
   });
 }
