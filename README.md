@@ -1,4 +1,4 @@
-# mystudylifeapp
+# Success Road
 
 A new Flutter project.
 
